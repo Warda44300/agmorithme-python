@@ -1,0 +1,147 @@
+{
+  "_commentaire": "Configuration par défaut des règles de tri (modifiable plus tard via interface client).",
+  "version": "1.0",
+
+  "champs_csv": {
+    "_commentaire": "Mapping logique -> colonnes réelles du CSV. IMPORTANT : poste doit pointer vers 'Title' (pas 'Name').",
+    "poste": "Title",
+    "url": "URL",
+    "entreprise": null,
+    "secteur": null,
+    "localisation": null,
+    "nom": "Name"
+  },
+
+  "filtres": {
+    "_commentaire": "Règles de tri principales (optionnel si tu utilises surtout la section 'regles').",
+
+    "secteurs_inclus": {
+      "_commentaire": "Si non vide : on garde uniquement ces secteurs (liste de mots-clés).",
+      "actif": false,
+      "mots_cles": ["informatique", "digital", "marketing", "e-commerce", "association"]
+    },
+
+    "secteurs_exclus": {
+      "_commentaire": "On exclut si le secteur contient un de ces mots-clés.",
+      "actif": true,
+      "mots_cles": ["recrutement", "intérim", "immobilier"]
+    },
+
+    "metiers_inclus": {
+      "_commentaire": "On garde si le poste contient au moins un de ces mots-clés (si actif).",
+      "actif": false,
+      "mots_cles": ["fondateur", "dirigeant", "gérant", "CEO", "président", "directeur"]
+    },
+
+    "metiers_exclus": {
+      "_commentaire": "On exclut si le poste contient au moins un de ces mots-clés.",
+      "actif": true,
+      "mots_cles": ["stagiaire", "alternant", "intern", "assistant"]
+    },
+
+    "seniority_decisionnaire": {
+      "_commentaire": "Mots-clés indiquant un profil décisionnaire (priorité haute).",
+      "actif": true,
+      "mots_cles": [
+        "owner",
+        "founder",
+        "co-founder",
+        "ceo",
+        "chief",
+        "président",
+        "présidente",
+        "president",
+        "directeur",
+        "directrice",
+        "dirigeant",
+        "dirigeante",
+        "gérant",
+        "gérante",
+        "head",
+        "manager",
+        "managing",
+        "responsable",
+        "associate",
+        "associé",
+        "associée",
+        "partner"
+      ]
+    }
+  },
+
+  "scoring": {
+    "_commentaire": "Base de scoring (on l'utilisera plus tard pour classer).",
+    "points": {
+      "secteur_inclus": 20,
+      "metier_inclus": 30,
+      "seniority_decisionnaire": 40,
+      "secteur_exclus": -50,
+      "metier_exclus": -50
+    },
+    "seuils": {
+      "_commentaire": "Seuil minimal pour considérer un contact comme 'prospect'.",
+      "prospect_min": 30
+    }
+  },
+
+  "regles": [
+    {
+      "id": "exclusion_stage_alternance",
+      "actif": true,
+      "champ": "poste",
+      "type": "contient_un_mot_cle",
+      "mots_cles": ["stagiaire", "alternant", "intern", "assistant"],
+      "action": "exclure",
+      "_commentaire": "On exclut les profils juniors / non décisionnaires"
+    },
+    {
+      "id": "bonus_decisionnaire",
+      "actif": true,
+      "champ": "poste",
+      "type": "contient_un_mot_cle",
+      "mots_cles": [
+        "owner",
+        "founder",
+        "co-founder",
+        "ceo",
+        "chief",
+        "président",
+        "présidente",
+        "president",
+        "directeur",
+        "directrice",
+        "dirigeant",
+        "dirigeante",
+        "gérant",
+        "gérante",
+        "head",
+        "manager",
+        "managing",
+        "responsable",
+        "associate",
+        "associé",
+        "associée",
+        "partner"
+      ],
+      "action": "score",
+      "points": 40,
+      "_commentaire": "Bonus si le poste indique un décideur"
+    },
+    {
+      "id": "seuil_prospect",
+      "actif": true,
+      "type": "seuil",
+      "champ_score": "score",
+      "min": 30,
+      "action": "garder",
+      "_commentaire": "Seuil minimal pour garder un contact"
+    }
+  ],
+
+  "custom_filters": {
+    "_commentaire": "Filtres personnalisés ajoutés par l'utilisateur/client. Chaque filtre est une 'recette' de conditions.",
+    "filters": []
+  }
+}
+
+
