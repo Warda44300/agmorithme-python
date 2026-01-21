@@ -1,34 +1,47 @@
-# wdc_api/routers/prospects.py
-# ============================
-# Rôle :
-# - Déclarer les routes (endpoints) FastAPI liées aux prospects
-# - Protéger TOUTES ces routes avec une clé API (header x-api-key)
-# - Appeler la couche CRUD pour récupérer les données en base PostgreSQL
+"""
+wdc_api/routers/prospects.py
+============================
 
-from fastapi import APIRouter, Depends  # APIRouter = regroupe des routes / Depends = injection de dépendances
-from sqlalchemy.orm import Session      # Type de session SQLAlchemy (connexion DB côté Python)
+Rôle :
+- Déclarer les routes FastAPI liées aux prospects
+- Protéger TOUTES ces routes avec une clé API via header "X-API-Key"
+- Exposer cette protection dans OpenAPI pour que Swagger affiche "Authorize"
 
-from wdc_api.database import get_db            # Donne une session DB par requête et la ferme proprement
-from wdc_api import crud, schemas              # crud = logique DB / schemas = format des réponses API
-from wdc_api.security import require_api_key   # Dépendance de sécurité : vérifie la clé API
+Pourquoi on utilise Security() et pas Depends() ?
+- Depends() applique une dépendance, mais n'active pas toujours la déclaration OpenAPI "securitySchemes".
+- Security() marque explicitement une dépendance de sécurité => Swagger affiche le cadenas + Authorize.
+"""
+
+from fastapi import APIRouter, Depends, Security
+from sqlalchemy.orm import Session
+
+from wdc_api.database import get_db
+from wdc_api import crud, schemas
+from wdc_api.security import require_api_key
 
 
-# Création du "router" prospects :
-# - prefix="/prospects" => toutes les routes ici commenceront par /prospects
+# Router "prospects"
+# - prefix="/prospects" => toutes les routes commencent par /prospects
 # - tags=["prospects"]  => affichage propre dans Swagger /docs
-# - dependencies=[...]  => applique require_api_key à TOUTES les routes du router (sécurité globale)
 router = APIRouter(
     prefix="/prospects",
     tags=["prospects"],
-    dependencies=[Depends(require_api_key)]  # 🔐 Protection globale par clé API
 )
 
 
 @router.get(
-    "/",  # Chemin final => /prospects/
-    response_model=list[schemas.ProspectOut]  # Format de sortie (liste de prospects)
+    "/",
+    response_model=list[schemas.ProspectOut],
 )
-def list_prospects(db: Session = Depends(get_db)):
+def list_prospects(
+    # Sécurité :
+    # - on appelle require_api_key via Security()
+    # - ça force OpenAPI à déclarer un security scheme => bouton Authorize visible
+    _: str = Security(require_api_key),
+
+    # DB session :
+    db: Session = Depends(get_db),
+):
     """
     Endpoint : GET /prospects/
 
@@ -36,12 +49,10 @@ def list_prospects(db: Session = Depends(get_db)):
     - Retourner la liste des prospects stockés en base
 
     Sécurité :
-    - La route est protégée par la dépendance globale du router :
-      require_api_key() vérifie que le header "x-api-key" correspond à la clé serveur.
+    - Header requis : X-API-Key: <ta_clé>
+    - La clé doit matcher la variable d'environnement WDC_API_KEY
 
     Base de données :
     - db est une session SQLAlchemy fournie automatiquement par get_db()
     """
-    # Appel à la couche CRUD qui interroge la table prospects et renvoie les lignes
     return crud.get_prospects(db)
-
