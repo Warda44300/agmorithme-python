@@ -14,15 +14,18 @@ Contexte :
 """
 
 import os
-
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+# ✅ CHARGER LE FICHIER .env
+load_dotenv()
 
 # -------------------------------------------------------------------
 # DATABASE_URL
 # -------------------------------------------------------------------
 # Priorité :
-# 1) Variable d’environnement DATABASE_URL (recommandé en dev/prod)
+# 1) Variable d'environnement DATABASE_URL (recommandé en dev/prod)
 # 2) Valeur par défaut locale (fallback)
 #
 # IMPORTANT :

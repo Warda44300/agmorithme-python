@@ -1,0 +1,4 @@
+# requirements-tools.txt
+# Dépendances pour les outils d'automatisation (Playwright, etc.)
+
+playwright==1.49.1
