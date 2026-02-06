@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import re
 import pandas as pd
+import sys
+import os
 
 
 # -----------------------------
@@ -33,18 +35,21 @@ def normaliser_nom_colonne(nom: str) -> str:
     Normalise un nom de colonne pour le comparer facilement :
     - minuscules
     - trim espaces
+    - remplace espaces et tirets par underscores
+    - compactage underscores multiples
     """
-    return str(nom).strip().lower()
+    n = str(nom).strip().lower()
+    n = re.sub(r"[\s\-]+", "_", n)
+    n = re.sub(r"_+", "_", n)
+    return n
 
 
-def trouver_colonne(df: pd.DataFrame, cible: str) -> str | None:
+def trouver_colonne(mapping: dict[str, str], cible: str) -> str | None:
     """
-    Trouve le nom réel d'une colonne dans le DataFrame, sans se faire piéger par la casse.
+    Trouve le nom réel d'une colonne dans le mapping normalisé.
     Exemple: cible="url" matchera "URL" / "Url" / " url ".
     """
-    cible_norm = normaliser_nom_colonne(cible)
-    mapping = {normaliser_nom_colonne(c): c for c in df.columns}
-    return mapping.get(cible_norm)
+    return mapping.get(normaliser_nom_colonne(cible))
 
 
 def split_prenom_nom(full_name: str) -> tuple[str, str]:
@@ -75,28 +80,57 @@ def split_prenom_nom(full_name: str) -> tuple[str, str]:
 def main() -> None:
     # 1) Fichier source LinkedIn
     fichier_entree = "Connections_from_LinkedIn.csv"
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        fichier_entree = sys.argv[1].strip()
 
     # 2) Lecture du CSV
     # utf-8-sig est souvent nécessaire pour les exports avec BOM
+    print(f"[INFO] Fichier d'entrée : {fichier_entree}")
+    if not os.path.isfile(fichier_entree):
+        cwd = os.getcwd()
+        csv_files = sorted(
+            [f for f in os.listdir(cwd) if f.lower().endswith(".csv")]
+        )[:10]
+        print(
+            "ERREUR : fichier introuvable.\n"
+            f"- Fichier recherché : {fichier_entree}\n"
+            f"- Dossier courant : {cwd}\n"
+            f"- CSV présents (max 10) : {csv_files if csv_files else 'aucun'}\n"
+            "Usage : python 01_normalisation_linkedin.py <fichier.csv>"
+        )
+        sys.exit(1)
     df = pd.read_csv(fichier_entree, encoding="utf-8-sig")
 
-    # 3) Vérifier colonnes attendues (au moins Name + URL)
-    col_name = trouver_colonne(df, "Name")
-    col_url = trouver_colonne(df, "URL")
+    # 3) Mapping colonnes normalisées -> colonnes originales
+    mapping = {normaliser_nom_colonne(c): c for c in df.columns}
 
-    if not col_name or not col_url:
-        raise ValueError(
-            "Colonnes requises introuvables dans le CSV.\n"
-            f"Colonnes détectées: {list(df.columns)}\n"
-            "Il faut au minimum: 'Name' et 'URL' (peu importe la casse)."
+    # Logs de diagnostic (légers)
+    print("Colonnes détectées (normalisées) :", list(mapping.keys()))
+    print("Colonnes originales :", list(df.columns))
+    print("Nombre de lignes lues :", len(df))
+
+    # 4) Vérifier colonnes attendues (au minimum url)
+    col_url = trouver_colonne(mapping, "url")
+    if not col_url:
+        # Alias minimal compatible
+        col_url = trouver_colonne(mapping, "linkedin_url")
+
+    if not col_url:
+        print(
+            "ERREUR : colonne minimale manquante : 'url'.\n"
+            f"Colonnes détectées (normalisées): {list(mapping.keys())}"
         )
+        sys.exit(1)
 
-    # 4) Construire le DataFrame normalisé
+    # Optionnel : nom si présent (pas obligatoire)
+    col_name = trouver_colonne(mapping, "name")
+
+    # 5) Construire le DataFrame normalisé
     #    -> colonnes standardisées pour la suite du pipeline
     output_rows = []
 
     for _, row in df.iterrows():
-        full_name = row.get(col_name)
+        full_name = row.get(col_name) if col_name else ""
         linkedin_url = row.get(col_url)
 
         prenom, nom = split_prenom_nom(full_name)
@@ -128,14 +162,32 @@ def main() -> None:
 
     df_out = pd.DataFrame(output_rows)
 
-    # 5) Optionnel: supprimer les lignes sans URL LinkedIn (si jamais)
+    # Contrat de sortie : ordre des colonnes figé
+    colonnes_sortie = [
+        "prenom",
+        "nom",
+        "nom_complet",
+        "linkedin_url",
+        "poste",
+        "entreprise",
+        "secteur",
+        "email",
+        "telephone",
+        "site_web",
+        "reseaux_sociaux",
+        "source",
+        "statut",
+    ]
+    df_out = df_out[colonnes_sortie]
+
+    # 6) Optionnel: supprimer les lignes sans URL LinkedIn (si jamais)
     # df_out = df_out[df_out["linkedin_url"].str.len() > 0].copy()
 
-    # 6) Export
+    # 7) Export
     fichier_sortie = "linkedin_normalise.csv"
     df_out.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
-    # 7) Petit récap utile
+    # 8) Petit récap utile
     print("OK ✅ Fichier normalisé créé :", fichier_sortie)
     print("Lignes input  :", len(df))
     print("Lignes output :", len(df_out))
