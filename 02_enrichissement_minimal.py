@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import pandas as pd
+import sys
 
 
 def nettoyer_url(url: str) -> str:
@@ -64,8 +65,11 @@ def extraire_slug_linkedin(url: str) -> str:
 def main() -> None:
     fichier_entree = "linkedin_normalise.csv"
     fichier_sortie = "linkedin_normalise_enrichi_min.csv"
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        fichier_entree = sys.argv[1].strip()
 
     df = pd.read_csv(fichier_entree, encoding="utf-8-sig")
+    lignes_input = len(df)
 
     # Sécurités : colonnes indispensables
     if "linkedin_url" not in df.columns:
@@ -78,11 +82,17 @@ def main() -> None:
     # Statut plus précis
     df["statut"] = df["linkedin_slug"].apply(lambda s: "a_enrichir" if s else "url_invalide_ou_absente")
 
+    # Contrat de sortie : ordre des colonnes figé (entrée + linkedin_slug)
+    colonnes_sortie = [c for c in df.columns if c != "linkedin_slug"] + ["linkedin_slug"]
+    df = df[colonnes_sortie]
+
     # Export
     df.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
     print("OK ✅ Fichier enrichi minimal créé :", fichier_sortie)
-    print("Lignes :", len(df))
+    print("Lignes input :", lignes_input)
+    print("Lignes output :", len(df))
+    print("Colonnes output :", list(df.columns))
     print("Slug vides :", int((df["linkedin_slug"] == "").sum()))
     print("Slug non vides :", int((df["linkedin_slug"] != "").sum()))
 
