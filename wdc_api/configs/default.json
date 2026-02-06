@@ -80,7 +80,7 @@
     },
     "seuils": {
       "_commentaire": "Seuil minimal pour considérer un contact comme 'prospect'.",
-      "prospect_min": 30
+      "prospect_min": 10
     }
   },
 
@@ -132,7 +132,7 @@
       "actif": true,
       "type": "seuil",
       "champ_score": "score",
-      "min": 30,
+      "min": 10,
       "action": "garder",
       "_commentaire": "Seuil minimal pour garder un contact"
     }
