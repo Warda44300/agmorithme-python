@@ -157,6 +157,12 @@ def main() -> None:
                 # Pilotage / traçabilité
                 "source": "linkedin_connections_export",
                 "statut": "a_enrichir",  # pratique pour suivre l'avancement
+
+                # Sécurité first (data-only)
+                "action_linkedin_autorisee": "non",
+                "validated_by": "",
+                "validated_at": "",
+                "interdit_action": "oui",
             }
         )
 
@@ -188,7 +194,7 @@ def main() -> None:
     df_out.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
     # 8) Petit récap utile
-    print("OK ✅ Fichier normalisé créé :", fichier_sortie)
+    print("OK Fichier normalisé créé :", fichier_sortie)
     print("Lignes input  :", len(df))
     print("Lignes output :", len(df_out))
     print("Colonnes output :", list(df_out.columns))

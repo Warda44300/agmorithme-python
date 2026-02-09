@@ -39,13 +39,23 @@ def main() -> None:
     # Doublons sur slug (on garde le 1er)
     nb_doublons = int(df.duplicated(subset=["linkedin_slug"]).sum())
 
+    # Sécurité first (data-only) : garantir les colonnes si absentes
+    if "action_linkedin_autorisee" not in df.columns:
+        df["action_linkedin_autorisee"] = "non"
+    if "validated_by" not in df.columns:
+        df["validated_by"] = ""
+    if "validated_at" not in df.columns:
+        df["validated_at"] = ""
+    if "interdit_action" not in df.columns:
+        df["interdit_action"] = "oui"
+
     df_propre = df.drop_duplicates(subset=["linkedin_slug"], keep="first").copy()
 
     # Export
     df_propre.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
     # Reporting clair
-    print("OK ✅ Fichier propre créé :", fichier_sortie)
+    print("OK Fichier propre créé :", fichier_sortie)
     print("Lignes input :", nb_lignes)
     print("Lignes output :", len(df_propre))
     print("Doublons linkedin_slug supprimés :", nb_doublons)

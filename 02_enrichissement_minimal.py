@@ -79,6 +79,16 @@ def main() -> None:
     df["linkedin_url"] = df["linkedin_url"].apply(nettoyer_url)
     df["linkedin_slug"] = df["linkedin_url"].apply(extraire_slug_linkedin)
 
+    # Sécurité first (data-only) : garantir les colonnes si absentes
+    if "action_linkedin_autorisee" not in df.columns:
+        df["action_linkedin_autorisee"] = "non"
+    if "validated_by" not in df.columns:
+        df["validated_by"] = ""
+    if "validated_at" not in df.columns:
+        df["validated_at"] = ""
+    if "interdit_action" not in df.columns:
+        df["interdit_action"] = "oui"
+
     # Statut plus précis
     df["statut"] = df["linkedin_slug"].apply(lambda s: "a_enrichir" if s else "url_invalide_ou_absente")
 
@@ -89,7 +99,7 @@ def main() -> None:
     # Export
     df.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
-    print("OK ✅ Fichier enrichi minimal créé :", fichier_sortie)
+    print("OK Fichier enrichi minimal créé :", fichier_sortie)
     print("Lignes input :", lignes_input)
     print("Lignes output :", len(df))
     print("Colonnes output :", list(df.columns))

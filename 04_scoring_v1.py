@@ -155,12 +155,22 @@ def main():
     if "decision" not in df_score.columns:
         df_score["decision"] = df_score["score"].apply(lambda s: "keep" if s >= seuil else "discard")
 
+    # Sécurité first (data-only) : garantir les colonnes si absentes
+    if "action_linkedin_autorisee" not in df_score.columns:
+        df_score["action_linkedin_autorisee"] = "non"
+    if "validated_by" not in df_score.columns:
+        df_score["validated_by"] = ""
+    if "validated_at" not in df_score.columns:
+        df_score["validated_at"] = ""
+    if "interdit_action" not in df_score.columns:
+        df_score["interdit_action"] = "oui"
+
     # 5) Export CSV scoré
     fichier_sortie = "linkedin_score_v1.csv"
     df_score.to_csv(fichier_sortie, index=False, encoding="utf-8-sig")
 
     # 6) Logs de contrôle
-    print("OK ✅ Fichier scoré créé :", fichier_sortie)
+    print("OK Fichier scoré créé :", fichier_sortie)
     print("Lignes input :", lignes_input)
     print("Lignes output :", len(df_score))
     scores = pd.to_numeric(df_score["score"], errors="coerce").fillna(0)
